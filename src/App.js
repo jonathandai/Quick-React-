@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import 'rbx/index.css';
 import { Button, Container, Title } from 'rbx';
+import firebase from 'firebase/app';
+import 'firebase/database';
+
+var firebaseConfig = {
+  apiKey: "AIzaSyDg0wHEzjj7o-ZarPAr4UmsdWApIn1mElo",
+  authDomain: "course-scheduler-d0c1d.firebaseapp.com",
+  databaseURL: "https://course-scheduler-d0c1d.firebaseio.com",
+  projectId: "course-scheduler-d0c1d",
+  storageBucket: "course-scheduler-d0c1d.appspot.com",
+  messagingSenderId: "35300974445",
+  appId: "1:35300974445:web:7266bdbb467e710210c464",
+  measurementId: "G-RH5V4SN34Z"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database().ref();
 
 const Banner = ({ title }) => (
   <Title>{ title }</Title>
@@ -49,7 +65,7 @@ const addCourseTimes = course => ({
 
 const addScheduleTimes = schedule => ({
   title: schedule.title,
-  courses: schedule.courses.map(addCourseTimes)
+  courses: Object.values(schedule.courses).map(addCourseTimes)
 });
 
 const days = ['M', 'Tu', 'W', 'Th', 'F'];
@@ -144,24 +160,21 @@ const useSelection = () => {
 
 const App = () => {
   const [schedule, setSchedule] = useState({ title: '', courses: [] });
-  const url = 'https://courses.cs.northwestern.edu/394/data/cs-courses.php';
 
   useEffect(() => {
-    const fetchSchedule = async () => {
-      const response = await fetch(url);
-      if (!response.ok) throw response;
-      const json = await response.json();
-      setSchedule(addScheduleTimes(json));
+    const handleData = snap => {
+      if (snap.val()) setSchedule(addScheduleTimes(snap.val()));
     }
-    fetchSchedule();
-  }, [])
+    db.on('value', handleData, error => alert(error));
+    return () => { db.off('value', handleData); };
+  }, []);
 
   return (
     <Container>
       <Banner title={ schedule.title } />
       <CourseList courses={ schedule.courses } />
     </Container>
-  );
+);
 };
 
 export default App;
